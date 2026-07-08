@@ -1,5 +1,5 @@
 import { Page } from '@/types/models';
-import { createId } from '@/utils/id';
+import { createId } from '@/utils/ids';
 
 import { bookRepository } from './bookRepository';
 import { getDatabase } from './db';

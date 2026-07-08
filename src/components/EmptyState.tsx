@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '@/theme';
 
-import { Button } from './Button';
+import { AppButton } from './AppButton';
 import { Text } from './Text';
 
 interface EmptyStateProps {
@@ -44,7 +44,7 @@ export function EmptyState({
         {message}
       </Text>
       {actionLabel && onAction && (
-        <Button
+        <AppButton
           label={actionLabel}
           onPress={onAction}
           variant="tinted"

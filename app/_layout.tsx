@@ -54,14 +54,16 @@ function ThemedNavigation() {
       >
         <Stack.Screen name="index" />
         <Stack.Screen name="onboarding" />
-        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="library/index" />
+        <Stack.Screen name="search" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="settings" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="book/[id]" options={{ presentation: 'card' }} />
         <Stack.Screen
           name="reader/[id]"
           options={{ presentation: 'fullScreenModal', animation: 'fade' }}
         />
         <Stack.Screen
-          name="scanner"
+          name="scanner/index"
           options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }}
         />
       </Stack>

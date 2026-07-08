@@ -1,5 +1,5 @@
-import { MockOcrProvider } from './MockOcrProvider';
-import { OcrProvider } from './types';
+import { MockOcrProvider } from './MockOCRProvider';
+import { OcrProvider } from './OCRProvider';
 
 /**
  * OCR provider registry. The active provider is chosen here so the rest of the
@@ -31,4 +31,4 @@ export function setOcrProvider(id: OcrProviderId): void {
   activeProviderId = id;
 }
 
-export * from './types';
+export * from './OCRProvider';

@@ -8,7 +8,7 @@ import {
 import { getOcrProvider } from '@/services/ocr';
 import { imageStorage } from '@/services/storage/imageStorage';
 import { DraftPage } from '@/types/models';
-import { createId } from '@/utils/id';
+import { createId } from '@/utils/ids';
 
 interface ScannerState {
   /** Pages captured in the current scan session, not yet persisted. */

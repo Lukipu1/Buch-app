@@ -1,6 +1,6 @@
 import * as FileSystem from 'expo-file-system';
 
-import { createId } from '@/utils/id';
+import { createId } from '@/utils/ids';
 
 /**
  * Persists scanned page images inside the app's document directory so they

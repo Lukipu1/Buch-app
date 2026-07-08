@@ -2,6 +2,6 @@ import React from 'react';
 
 import { SearchScreen } from '@/features/search/SearchScreen';
 
-export default function SearchTab() {
+export default function SearchRoute() {
   return <SearchScreen />;
 }

@@ -1,5 +1,8 @@
 /** Small, dependency-free formatting helpers used across screens. */
 
+// Re-exported so callers can pull date + value formatting from one module.
+export { formatRelativeTime, formatDate } from './date';
+
 /** Formats a page count as a localized German label. */
 export function formatPageCount(count: number): string {
   return count === 1 ? '1 Seite' : `${count} Seiten`;
@@ -23,33 +26,4 @@ export function formatProgress(
 ): string {
   const pct = Math.round(readingProgress(currentPageIndex, totalPages) * 100);
   return `${pct} %`;
-}
-
-/** Relative "last opened" label in German (e.g. "vor 3 Tagen"). */
-export function formatRelativeTime(timestamp: number | null): string {
-  if (!timestamp) return 'Noch nicht geöffnet';
-
-  const diff = Date.now() - timestamp;
-  const minute = 60_000;
-  const hour = 60 * minute;
-  const day = 24 * hour;
-
-  if (diff < minute) return 'Gerade eben';
-  if (diff < hour) {
-    const m = Math.floor(diff / minute);
-    return `vor ${m} Min.`;
-  }
-  if (diff < day) {
-    const h = Math.floor(diff / hour);
-    return h === 1 ? 'vor 1 Stunde' : `vor ${h} Stunden`;
-  }
-  const d = Math.floor(diff / day);
-  if (d === 1) return 'Gestern';
-  if (d < 7) return `vor ${d} Tagen`;
-
-  return new Date(timestamp).toLocaleDateString('de-DE', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
 }

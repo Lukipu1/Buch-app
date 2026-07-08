@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button, Input, Text } from '@/components';
+import { AppButton, Input, Text } from '@/components';
 import { useLibraryStore } from '@/store/useLibraryStore';
 import { useScannerStore } from '@/store/useScannerStore';
 import { useTheme } from '@/theme';
@@ -111,7 +111,7 @@ export function SaveScanSheet({
               </Text>
             </View>
           ) : (
-            <Button
+            <AppButton
               label={isNewBook ? 'Buch speichern' : 'Hinzufügen'}
               icon="checkmark"
               onPress={save}

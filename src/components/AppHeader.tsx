@@ -5,7 +5,7 @@ import { useTheme } from '@/theme';
 
 import { Text } from './Text';
 
-interface HeaderProps {
+interface AppHeaderProps {
   title: string;
   subtitle?: string;
   /** Rendered on the trailing edge (e.g. an action button). */
@@ -18,7 +18,7 @@ interface HeaderProps {
  * Large-title screen header in the iOS style. Screens that use the native
  * navigator title can skip this; it is handy for custom/modal screens.
  */
-export function Header({ title, subtitle, right, left }: HeaderProps) {
+export function AppHeader({ title, subtitle, right, left }: AppHeaderProps) {
   const theme = useTheme();
   return (
     <View style={[styles.container, { paddingHorizontal: theme.spacing.lg }]}>

@@ -52,15 +52,20 @@ Klare Trennung zwischen **UI**, **State** und **Datenzugriff**:
 ```
 app/                       # Expo-Router-Routen (dünne Wrapper um Feature-Screens)
   _layout.tsx              # Root: ThemeProvider, DB-Bootstrap, Splash-Gating, Stack
-  index.tsx                # Einstieg → Onboarding oder Tabs
+  index.tsx                # Einstieg → Onboarding oder Bibliothek
   onboarding.tsx
-  (tabs)/                  # Tab-Navigation: Bibliothek, Suche, Einstellungen
+  library/index.tsx        # Bibliothek (Start-Screen)
   book/[id].tsx            # Buch-Detail
+  scanner/index.tsx        # Scanner (Fullscreen-Modal)
   reader/[id].tsx          # Reader (Fullscreen-Modal)
-  scanner.tsx              # Scanner (Fullscreen-Modal)
+  search.tsx
+  settings.tsx
 
 src/
-  components/              # Wiederverwendbare UI-Primitive (Button, Card, Input, …)
+  components/              # Wiederverwendbare UI-Primitive
+    AppButton · AppCard · AppHeader · BookCard · EmptyState
+    PagePreview · SearchInput · Input · Text · IconButton
+    ProgressBar · Skeleton · SegmentedControl · confirm
   features/                # Fachlogik je Bereich (UI + Hooks)
     onboarding/
     library/               # Bibliothek + Buch-Detail
@@ -69,14 +74,18 @@ src/
     search/
     settings/
   services/
-    database/              # SQLite: Schema, Migrationen, Repositories
-    ocr/                   # OCR-Abstraktion (Interface + Provider-Registry)
-    storage/               # Bild-Persistenz + App-Metadaten
-  store/                   # Zustand-Stores (app, settings, library, scanner)
-  theme/                   # Design-Tokens + ThemeProvider (Light/Dark)
-  types/                   # Domänenmodelle
-  utils/                   # Formatierung, IDs, Haptik, Mock-Daten
+    database/              # SQLite: schema.ts, repository.ts (+ Entity-Repos), db.ts
+    ocr/                   # OCRProvider.ts, MockOCRProvider.ts, Registry
+    storage/               # storageService.ts (Bild-Persistenz + App-Metadaten)
+  store/                   # Zustand-Stores (useAppStore, settings, library, scanner)
+  theme/                   # colors · spacing · typography · radius · shadows · theme
+  types/                   # book.ts · page.ts · settings.ts (+ models.ts Barrel)
+  utils/                   # date.ts · ids.ts · format · bytes · haptics · mockData
 ```
+
+> Hinweis zur Navigation: Die App nutzt bewusst eine flache Stack-Struktur.
+> Die **Bibliothek** ist der Start-Screen; Suche, Einstellungen und Scanner
+> werden von dort per Header-Aktionen geöffnet.
 
 ### Datenfluss
 

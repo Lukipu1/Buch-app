@@ -1,10 +1,10 @@
 import React from 'react';
-import { Pressable, StyleSheet, View, ViewStyle } from 'react-native';
+import { Pressable, View, ViewStyle } from 'react-native';
 
 import { useTheme } from '@/theme';
 import { haptic } from '@/utils/haptics';
 
-interface CardProps {
+interface AppCardProps {
   children: React.ReactNode;
   onPress?: () => void;
   padded?: boolean;
@@ -12,7 +12,7 @@ interface CardProps {
 }
 
 /** Rounded, softly shadowed surface used to group content. */
-export function Card({ children, onPress, padded = true, style }: CardProps) {
+export function AppCard({ children, onPress, padded = true, style }: AppCardProps) {
   const theme = useTheme();
 
   const base: ViewStyle = {
@@ -42,7 +42,3 @@ export function Card({ children, onPress, padded = true, style }: CardProps) {
     </Pressable>
   );
 }
-
-export const cardStyles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center' },
-});

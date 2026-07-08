@@ -5,8 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import {
-  Button,
-  Card,
+  AppButton,
+  AppCard,
   EmptyState,
   IconButton,
   ProgressBar,
@@ -119,7 +119,7 @@ export function BookDetailScreen({ bookId }: { bookId: string }) {
           ) : null}
         </View>
 
-        <Card style={styles.statsCard}>
+        <AppCard style={styles.statsCard}>
           <View style={styles.statsRow}>
             <Stat label="Seiten" value={String(book.totalPages)} />
             <Divider />
@@ -135,10 +135,10 @@ export function BookDetailScreen({ bookId }: { bookId: string }) {
               <ProgressBar progress={progress} />
             </View>
           )}
-        </Card>
+        </AppCard>
 
         <View style={styles.actions}>
-          <Button
+          <AppButton
             label="Lesen"
             icon="book"
             size="lg"
@@ -146,7 +146,7 @@ export function BookDetailScreen({ bookId }: { bookId: string }) {
             disabled={book.totalPages === 0}
             onPress={() => router.push(`/reader/${book.id}`)}
           />
-          <Button
+          <AppButton
             label="Weiter scannen"
             icon="scan"
             variant="tinted"
@@ -155,14 +155,14 @@ export function BookDetailScreen({ bookId }: { bookId: string }) {
             onPress={() => router.push(`/scanner?bookId=${book.id}`)}
           />
           <View style={styles.secondaryRow}>
-            <Button
+            <AppButton
               label="Bearbeiten"
               icon="create-outline"
               variant="secondary"
               onPress={() => setEditing(true)}
               style={styles.secondaryButton}
             />
-            <Button
+            <AppButton
               label="Löschen"
               icon="trash-outline"
               variant="destructive"
@@ -180,11 +180,11 @@ export function BookDetailScreen({ bookId }: { bookId: string }) {
         </View>
 
         {pages.length === 0 ? (
-          <Card>
+          <AppCard>
             <Text variant="subhead" color="textSecondary" center>
               Noch keine Seiten. Tippe auf „Weiter scannen“, um zu beginnen.
             </Text>
-          </Card>
+          </AppCard>
         ) : (
           <View style={styles.pageGrid}>
             {pages.map((page) => (

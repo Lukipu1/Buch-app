@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { EmptyState, Header, Input, Text } from '@/components';
+import { EmptyState, AppHeader, SearchInput, Text } from '@/components';
 import { useTheme } from '@/theme';
 
 import { SearchResultCard } from './SearchResultCard';
@@ -33,17 +33,12 @@ export function SearchScreen() {
   return (
     <View style={[styles.flex, { backgroundColor: theme.colors.background }]}>
       <View style={{ paddingTop: insets.top }}>
-        <Header title="Suche" />
+        <AppHeader title="Suche" />
         <View style={styles.searchField}>
-          <Input
-            icon="search"
+          <SearchInput
             placeholder="Titel, Autor oder Inhalt"
             value={query}
             onChangeText={setQuery}
-            autoCorrect={false}
-            autoCapitalize="none"
-            returnKeyType="search"
-            clearButtonMode="while-editing"
           />
         </View>
       </View>

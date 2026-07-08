@@ -1,6 +1,6 @@
 import { OcrLanguage } from '@/types/models';
 
-import { OcrProvider, OcrRequest, OcrResult } from './types';
+import { OcrProvider, OcrRequest, OcrResult } from './OCRProvider';
 
 /**
  * Development-only provider. Returns deterministic placeholder text after a

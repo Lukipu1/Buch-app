@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button, Input, Text } from '@/components';
+import { AppButton, Input, Text } from '@/components';
 import { bookRepository } from '@/services/database';
 import { useTheme } from '@/theme';
 import { Book } from '@/types/models';
@@ -83,7 +83,7 @@ export function EditBookSheet({ book, onClose, onSaved }: EditBookSheetProps) {
             containerStyle={styles.field}
           />
 
-          <Button
+          <AppButton
             label="Speichern"
             onPress={save}
             disabled={!canSave}

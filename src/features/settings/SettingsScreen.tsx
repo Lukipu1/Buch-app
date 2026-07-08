@@ -4,7 +4,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
-  Header,
+  AppHeader,
   IconButton,
   SegmentedControl,
   Text,
@@ -72,7 +72,7 @@ export function SettingsScreen() {
   return (
     <View style={[styles.flex, { backgroundColor: theme.colors.background }]}>
       <View style={{ paddingTop: insets.top }}>
-        <Header title="Einstellungen" />
+        <AppHeader title="Einstellungen" />
       </View>
       <ScrollView
         contentContainerStyle={[

@@ -1,9 +1,10 @@
 export { Text } from './Text';
-export { Button } from './Button';
-export { Card } from './Card';
+export { AppButton } from './AppButton';
+export { AppCard } from './AppCard';
+export { AppHeader } from './AppHeader';
 export { Input } from './Input';
+export { SearchInput } from './SearchInput';
 export { IconButton } from './IconButton';
-export { Header } from './Header';
 export { EmptyState } from './EmptyState';
 export { Skeleton } from './Skeleton';
 export { ProgressBar } from './ProgressBar';

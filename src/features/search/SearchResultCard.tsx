@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Card, Text } from '@/components';
+import { AppCard, Text } from '@/components';
 import { useTheme } from '@/theme';
 import { SearchResult } from '@/types/models';
 import { formatPageCount } from '@/utils/format';
@@ -23,7 +23,7 @@ export function SearchResultCard({
   const { book, pageMatches } = result;
 
   return (
-    <Card padded={false} style={styles.card}>
+    <AppCard padded={false} style={styles.card}>
       <View style={styles.header} onTouchEnd={onOpenBook}>
         <View
           style={[
@@ -65,7 +65,7 @@ export function SearchResultCard({
           </View>
         </View>
       ))}
-    </Card>
+    </AppCard>
   );
 }
 

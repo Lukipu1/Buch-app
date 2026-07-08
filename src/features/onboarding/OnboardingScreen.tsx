@@ -11,7 +11,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Button, Text } from '@/components';
+import { AppButton, Text } from '@/components';
 import { useAppStore } from '@/store/useAppStore';
 import { useTheme } from '@/theme';
 
@@ -35,7 +35,7 @@ export function OnboardingScreen() {
 
   const finish = async () => {
     await completeOnboarding();
-    router.replace('/(tabs)');
+    router.replace('/library');
   };
 
   const next = () => {
@@ -109,7 +109,7 @@ export function OnboardingScreen() {
             />
           ))}
         </View>
-        <Button
+        <AppButton
           label={isLast ? 'Loslegen' : 'Weiter'}
           onPress={next}
           size="lg"

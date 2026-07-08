@@ -6,9 +6,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   BookCard,
   EmptyState,
-  Header,
+  AppHeader,
   IconButton,
-  Input,
+  SearchInput,
 } from '@/components';
 import { useLibraryStore, selectVisibleBooks } from '@/store/useLibraryStore';
 import { useTheme } from '@/theme';
@@ -46,27 +46,35 @@ export function LibraryScreen() {
   return (
     <View style={[styles.flex, { backgroundColor: theme.colors.background }]}>
       <View style={{ paddingTop: insets.top }}>
-        <Header
+        <AppHeader
           title="Bibliothek"
           right={
-            <IconButton
-              icon="add"
-              accessibilityLabel="Neues Buch scannen"
-              onPress={startScan}
-              tinted
-            />
+            <View style={styles.headerActions}>
+              <IconButton
+                icon="search"
+                accessibilityLabel="Suche öffnen"
+                onPress={() => router.push('/search')}
+              />
+              <IconButton
+                icon="settings-outline"
+                accessibilityLabel="Einstellungen öffnen"
+                onPress={() => router.push('/settings')}
+              />
+              <IconButton
+                icon="add"
+                accessibilityLabel="Neues Buch scannen"
+                onPress={startScan}
+                tinted
+              />
+            </View>
           }
         />
         {totalBooks > 0 && (
           <View style={styles.controls}>
-            <Input
-              icon="search"
+            <SearchInput
               placeholder="Bücher durchsuchen"
               value={query}
               onChangeText={setQuery}
-              autoCorrect={false}
-              returnKeyType="search"
-              clearButtonMode="while-editing"
             />
             <SortControl />
           </View>
@@ -117,6 +125,7 @@ export function LibraryScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   controls: { paddingHorizontal: 16, gap: 12 },
   grid: {
     flexDirection: 'row',

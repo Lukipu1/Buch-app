@@ -1,5 +1,5 @@
 import { Book, LibrarySort } from '@/types/models';
-import { createId } from '@/utils/id';
+import { createId } from '@/utils/ids';
 
 import { getDatabase } from './db';
 
@@ -136,7 +136,7 @@ export const bookRepository = {
       [id],
     );
     const total = row?.count ?? 0;
-    const clampedIndex = total > 0 ? Math.min(total - 1, Math.max(0, total - 1)) : 0;
+    const clampedIndex = Math.max(0, total - 1);
     await db.runAsync(
       'UPDATE books SET totalPages = ?, currentPageIndex = MIN(currentPageIndex, ?), updatedAt = ? WHERE id = ?;',
       [total, clampedIndex, Date.now(), id],

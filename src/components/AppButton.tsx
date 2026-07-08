@@ -16,7 +16,7 @@ import { Text } from './Text';
 type Variant = 'primary' | 'secondary' | 'tinted' | 'plain' | 'destructive';
 type Size = 'md' | 'lg';
 
-interface ButtonProps {
+interface AppButtonProps {
   label: string;
   onPress: () => void;
   variant?: Variant;
@@ -28,7 +28,7 @@ interface ButtonProps {
   style?: ViewStyle;
 }
 
-export function Button({
+export function AppButton({
   label,
   onPress,
   variant = 'primary',
@@ -38,7 +38,7 @@ export function Button({
   loading,
   fullWidth,
   style,
-}: ButtonProps) {
+}: AppButtonProps) {
   const theme = useTheme();
   const isDisabled = disabled || loading;
 
