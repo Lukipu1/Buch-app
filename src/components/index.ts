@@ -11,4 +11,6 @@ export { ProgressBar } from './ProgressBar';
 export { BookCard } from './BookCard';
 export { PagePreview } from './PagePreview';
 export { SegmentedControl } from './SegmentedControl';
+export { SortButton } from './SortButton';
+export { SortSheet } from './SortSheet';
 export { confirm } from './confirm';

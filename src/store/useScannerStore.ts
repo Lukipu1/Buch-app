@@ -9,6 +9,7 @@ import { getOcrProvider } from '@/services/ocr';
 import { imageStorage } from '@/services/storage/imageStorage';
 import { DraftPage } from '@/types/models';
 import { createId } from '@/utils/ids';
+import { moveItem } from '@/utils/reorderPages';
 
 interface ScannerState {
   /** Pages captured in the current scan session, not yet persisted. */
@@ -46,15 +47,9 @@ export const useScannerStore = create<ScannerState>((set, get) => ({
   },
 
   moveDraft(from, to) {
-    set((s) => {
-      const next = [...s.drafts];
-      if (from < 0 || from >= next.length || to < 0 || to >= next.length) {
-        return s;
-      }
-      const [moved] = next.splice(from, 1);
-      next.splice(to, 0, moved);
-      return { drafts: next };
-    });
+    // Reordering drafts before they are persisted; pageIndex is assigned on
+    // save based on the final array order. Uses the shared pure `moveItem`.
+    set((s) => ({ drafts: moveItem(s.drafts, from, to) }));
   },
 
   reset() {

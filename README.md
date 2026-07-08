@@ -65,7 +65,7 @@ src/
   components/              # Wiederverwendbare UI-Primitive
     AppButton · AppCard · AppHeader · BookCard · EmptyState
     PagePreview · SearchInput · Input · Text · IconButton
-    ProgressBar · Skeleton · SegmentedControl · confirm
+    ProgressBar · Skeleton · SegmentedControl · SortButton · SortSheet · confirm
   features/                # Fachlogik je Bereich (UI + Hooks)
     onboarding/
     library/               # Bibliothek + Buch-Detail
@@ -79,8 +79,8 @@ src/
     storage/               # storageService.ts (Bild-Persistenz + App-Metadaten)
   store/                   # Zustand-Stores (useAppStore, settings, library, scanner)
   theme/                   # colors · spacing · typography · radius · shadows · theme
-  types/                   # book.ts · page.ts · settings.ts (+ models.ts Barrel)
-  utils/                   # date.ts · ids.ts · format · bytes · haptics · mockData
+  types/                   # book.ts · page.ts · settings.ts · sort.ts (+ models.ts Barrel)
+  utils/                   # sortBooks · sortPages · reorderPages · date · ids · format · bytes · haptics · mockData
 ```
 
 > Hinweis zur Navigation: Die App nutzt bewusst eine flache Stack-Struktur.
@@ -109,9 +109,9 @@ Zentrale Tokens: `colors` (Light + Dark), `typography` (iOS-Textstile), `spacing
 ## Was bereits funktioniert
 
 - ✅ **Onboarding** (3 Screens, Paging, Skip, persistierter Abschluss-Flag)
-- ✅ **Bibliothek**: Rasteransicht mit Buchkarten, Live-Suche, Sortierung (zuletzt hinzugefügt / zuletzt gelesen / Titel), Empty- & No-Result-States, Skeletons, Pull-to-Refresh
-- ✅ **Buch-Detailseite**: Cover, Metadaten, Fortschritt, Seiten-Grid, Aktionen (Lesen / Weiter scannen / Bearbeiten / Löschen mit Bestätigung)
-- ✅ **Scanner**: Kamera-Aufnahme, Galerie-Import (mehrfach), Draft-Vorschau-Leiste, Seiten entfernen, Reihenfolge im Store änderbar, Speichern als neues Buch oder Anhängen an bestehendes
+- ✅ **Bibliothek**: Rasteransicht mit Buchkarten, Live-Suche, **9-fache Sortierung** (siehe unten), Empty- & No-Result-States, Skeletons, Pull-to-Refresh
+- ✅ **Buch-Detailseite**: Cover, Metadaten, Fortschritt, Seiten-Grid mit **Seiten-Sortierung & manuellem Umsortieren** (persistiert), Aktionen (Lesen / Weiter scannen / Bearbeiten / Löschen mit Bestätigung)
+- ✅ **Scanner**: Kamera-Aufnahme, Galerie-Import (mehrfach), Draft-Vorschau-Leiste, Seiten entfernen, **Reihenfolge per Move-Controls ändern**, Speichern als neues Buch oder Anhängen an bestehendes
 - ✅ **OCR-Abstraktion**: `OcrProvider`-Interface + Mock-Provider, Ergebnis wird pro Seite gespeichert, Fehlerbehandlung (`OcrError`)
 - ✅ **Reader**: seitenweises Paging, Bild-/Textmodus, Schriftgröße, Lesemodi (Hell/Sepia/Dunkel), Seitenübersicht (TOC), Fortschritt wird gemerkt und gespeichert
 - ✅ **Suche**: global über Titel, Autor und OCR-Text; Ergebnisse nach Buch gruppiert mit Seiten-Snippets
@@ -120,6 +120,43 @@ Zentrale Tokens: `colors` (Light + Dark), `typography` (iOS-Textstile), `spacing
 - ✅ **UX-Fundament**: Loading-/Empty-/Error-States, Bestätigungsdialoge, dezente Haptik, flüssige Übergänge
 
 Verifiziert: `npm run typecheck` und `npm run lint` laufen sauber; ein vollständiger Metro-Bundle-Export (`expo export`) baut ohne Fehler.
+
+---
+
+## Sortiersystem
+
+Ein durchgängiges Sortiersystem für Bücher und Seiten. Die Sortier­definitionen
+sind reine String-Unions (`src/types/sort.ts`), die Sortierlogik sind reine,
+seiteneffektfreie Funktionen (gut testbar), und die aktive Auswahl wird im
+`useAppStore` gehalten und über `appMeta` **lokal persistiert** — die Wahl
+überlebt App-Neustarts.
+
+**Bibliothek (`BookSortKey`, 9 Optionen):** Zuletzt geöffnet · Zuletzt
+hinzugefügt · Titel A–Z · Titel Z–A · Autor A–Z · Seiten auf-/absteigend ·
+Fortschritt auf-/absteigend. Die Bücher werden roh geladen und im Screen per
+`sortBooks()` (nach Such-Filter) geordnet — so sind auch berechnete Kriterien
+wie Fortschritt möglich, die reines SQL-`ORDER BY` nicht abbildet.
+
+**Seiten (`PageSortKey`, 4 Optionen):** Seitenindex auf-/absteigend ·
+Erstellungsdatum auf-/absteigend, plus **manuelles Umsortieren**. Nach jeder
+manuellen Änderung werden die `pageIndex`-Werte über
+`reorderPages()`/`reindexPages()` neu berechnet (0…n-1) und via
+`pageRepository.reorderPages()` transaktional gespeichert.
+
+| Datei | Aufgabe |
+| --- | --- |
+| `src/types/sort.ts` | Sort-Keys, Optionslisten, Labels, Defaults |
+| `src/utils/sortBooks.ts` | Reine Buch-Sortierung (locale-aware, Nulls zuletzt) |
+| `src/utils/sortPages.ts` | Reine Seiten-Sortierung |
+| `src/utils/reorderPages.ts` | `moveItem` (generisch) + `reorderPages`/`reindexPages` |
+| `src/components/SortButton.tsx` | Pill-Button, zeigt aktive Sortierung |
+| `src/components/SortSheet.tsx` | Generisches Bottom-Sheet zur Auswahl |
+| `src/store/useAppStore.ts` | Hält & persistiert `librarySort` / `pageSort` |
+
+Integriert in: **Bibliothek** (`app/library`), **Buch-Detail** (Seiten-Grid),
+**Scanner** (Draft-Reihenfolge, `moveItem`) und **Reader** (liest immer in
+`indexAsc`-Reihenfolge via `sortPages`). Die manuellen Move-Controls sind die
+Vorstufe für vollständiges Drag-and-drop (Reanimated + Gesture Handler).
 
 ---
 

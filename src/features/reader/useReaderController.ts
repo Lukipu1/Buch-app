@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { bookRepository, pageRepository } from '@/services/database';
 import { Book, Page } from '@/types/models';
+import { sortPages } from '@/utils/sortPages';
 
 interface ReaderController {
   book: Book | null;
@@ -37,8 +38,11 @@ export function useReaderController(
         pageRepository.listByBook(bookId),
       ]);
       if (!active) return;
+      // Reading always follows page order; guarantee it regardless of the
+      // order the repository returned rows in.
+      const ordered = sortPages(nextPages, 'indexAsc');
       setBook(nextBook);
-      setPages(nextPages);
+      setPages(ordered);
       const start =
         initialPage ?? Math.min(nextBook?.currentPageIndex ?? 0, Math.max(0, nextPages.length - 1));
       setCurrentIndex(Math.max(0, Math.min(start, Math.max(0, nextPages.length - 1))));

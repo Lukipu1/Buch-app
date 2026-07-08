@@ -32,6 +32,7 @@ export function ScannerScreen({ targetBookId }: ScannerScreenProps) {
   const drafts = useScannerStore((s) => s.drafts);
   const addDraft = useScannerStore((s) => s.addDraft);
   const removeDraft = useScannerStore((s) => s.removeDraft);
+  const moveDraft = useScannerStore((s) => s.moveDraft);
   const reset = useScannerStore((s) => s.reset);
 
   const close = useCallback(() => {
@@ -131,7 +132,7 @@ export function ScannerScreen({ targetBookId }: ScannerScreenProps) {
       {/* Bottom controls */}
       <View style={[styles.controls, { paddingBottom: insets.bottom + 20 }]}>
         {drafts.length > 0 && (
-          <ScanTray drafts={drafts} onRemove={removeDraft} />
+          <ScanTray drafts={drafts} onRemove={removeDraft} onMove={moveDraft} />
         )}
         <View style={styles.shutterRow}>
           <IconButton

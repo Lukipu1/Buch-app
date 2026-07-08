@@ -6,3 +6,4 @@
 export type { Book, LibrarySort, SearchResult, PageMatch } from './book';
 export type { Page, DraftPage } from './page';
 export type { Settings, ThemePreference, OcrLanguage } from './settings';
+export type { BookSortKey, PageSortKey, SortOption } from './sort';

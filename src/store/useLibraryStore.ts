@@ -1,37 +1,30 @@
 import { create } from 'zustand';
 
 import { bookRepository } from '@/services/database';
-import { Book, LibrarySort } from '@/types/models';
+import { Book } from '@/types/models';
 
 type LoadState = 'idle' | 'loading' | 'ready' | 'error';
 
 interface LibraryState {
   books: Book[];
   status: LoadState;
-  sort: LibrarySort;
   query: string;
 
-  setSort: (sort: LibrarySort) => void;
   setQuery: (query: string) => void;
   load: () => Promise<void>;
   refresh: () => Promise<void>;
 }
 
 /**
- * Owns the list of books shown in the library. Screens call `load()` on mount
- * and `refresh()` after mutations (create/delete). Filtering by the search
- * query is derived, not stored, via `selectVisibleBooks`.
+ * Owns the raw list of books shown in the library. Screens call `load()` on
+ * mount and `refresh()` after mutations. Both search filtering and sort
+ * ordering are applied on top of this list by the screen — the store keeps the
+ * data source, not the presentation.
  */
 export const useLibraryStore = create<LibraryState>((set, get) => ({
   books: [],
   status: 'idle',
-  sort: 'recentlyAdded',
   query: '',
-
-  setSort(sort) {
-    set({ sort });
-    void get().refresh();
-  },
 
   setQuery(query) {
     set({ query });
@@ -41,7 +34,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     if (get().status === 'loading') return;
     set({ status: 'loading' });
     try {
-      const books = await bookRepository.list(get().sort);
+      const books = await bookRepository.list();
       set({ books, status: 'ready' });
     } catch {
       set({ status: 'error' });
@@ -50,7 +43,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
 
   async refresh() {
     try {
-      const books = await bookRepository.list(get().sort);
+      const books = await bookRepository.list();
       set({ books, status: 'ready' });
     } catch {
       set({ status: 'error' });

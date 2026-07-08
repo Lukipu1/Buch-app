@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -9,12 +9,17 @@ import {
   AppHeader,
   IconButton,
   SearchInput,
+  SortButton,
+  SortSheet,
+  Text,
 } from '@/components';
+import { useAppStore } from '@/store/useAppStore';
 import { useLibraryStore, selectVisibleBooks } from '@/store/useLibraryStore';
 import { useTheme } from '@/theme';
+import { BOOK_SORT_OPTIONS, bookSortLabel } from '@/types/sort';
+import { sortBooks } from '@/utils/sortBooks';
 
 import { LibrarySkeleton } from './LibrarySkeleton';
-import { SortControl } from './SortControl';
 
 export function LibraryScreen() {
   const theme = useTheme();
@@ -26,12 +31,22 @@ export function LibraryScreen() {
   const setQuery = useLibraryStore((s) => s.setQuery);
   const load = useLibraryStore((s) => s.load);
   const refresh = useLibraryStore((s) => s.refresh);
-  const books = useLibraryStore(selectVisibleBooks);
+  const filtered = useLibraryStore(selectVisibleBooks);
   const totalBooks = useLibraryStore((s) => s.books.length);
+
+  const librarySort = useAppStore((s) => s.librarySort);
+  const setLibrarySort = useAppStore((s) => s.setLibrarySort);
+  const [sortOpen, setSortOpen] = useState(false);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Sorting is derived: filter (search) → sort (selected order).
+  const books = useMemo(
+    () => sortBooks(filtered, librarySort),
+    [filtered, librarySort],
+  );
 
   const openBook = useCallback(
     (id: string) => router.push(`/book/${id}`),
@@ -76,7 +91,15 @@ export function LibraryScreen() {
               value={query}
               onChangeText={setQuery}
             />
-            <SortControl />
+            <View style={styles.sortRow}>
+              <Text variant="footnote" color="textTertiary">
+                {books.length === 1 ? '1 Buch' : `${books.length} Bücher`}
+              </Text>
+              <SortButton
+                label={bookSortLabel(librarySort)}
+                onPress={() => setSortOpen(true)}
+              />
+            </View>
           </View>
         )}
       </View>
@@ -119,6 +142,16 @@ export function LibraryScreen() {
           ))}
         </ScrollView>
       )}
+
+      {sortOpen && (
+        <SortSheet
+          title="Bibliothek sortieren"
+          options={BOOK_SORT_OPTIONS}
+          value={librarySort}
+          onSelect={setLibrarySort}
+          onClose={() => setSortOpen(false)}
+        />
+      )}
     </View>
   );
 }
@@ -127,6 +160,11 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   controls: { paddingHorizontal: 16, gap: 12 },
+  sortRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',

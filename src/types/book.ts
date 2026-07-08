@@ -1,4 +1,5 @@
 import { Page } from './page';
+import { BookSortKey } from './sort';
 
 /** A scanned book with its reading progress. Mirrors the `books` table. */
 export interface Book {
@@ -13,8 +14,11 @@ export interface Book {
   totalPages: number;
 }
 
-/** Options for how the library is ordered. */
-export type LibrarySort = 'recentlyOpened' | 'recentlyAdded' | 'title';
+/**
+ * Options for how the library is ordered.
+ * Canonical keys live in `sort.ts`; this alias is kept for existing imports.
+ */
+export type LibrarySort = BookSortKey;
 
 /** A single hit produced by the global search. */
 export interface SearchResult {

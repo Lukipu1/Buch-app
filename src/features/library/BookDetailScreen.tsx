@@ -14,11 +14,10 @@ import {
   Text,
   confirm,
 } from '@/components';
-import { bookRepository } from '@/services/database';
+import { bookRepository, pageRepository } from '@/services/database';
 import { useLibraryStore } from '@/store/useLibraryStore';
 import { useTheme } from '@/theme';
 import {
-  formatPageCount,
   formatProgress,
   formatRelativeTime,
   readingProgress,
@@ -26,6 +25,7 @@ import {
 import { haptic } from '@/utils/haptics';
 
 import { EditBookSheet } from './EditBookSheet';
+import { PageManager } from './PageManager';
 import { useBookDetail } from './useBookDetail';
 
 export function BookDetailScreen({ bookId }: { bookId: string }) {
@@ -172,31 +172,16 @@ export function BookDetailScreen({ bookId }: { bookId: string }) {
           </View>
         </View>
 
-        <View style={styles.pagesHeader}>
-          <Text variant="headline">Seiten</Text>
-          <Text variant="footnote" color="textTertiary">
-            {formatPageCount(book.totalPages)}
-          </Text>
-        </View>
-
-        {pages.length === 0 ? (
-          <AppCard>
-            <Text variant="subhead" color="textSecondary" center>
-              Noch keine Seiten. Tippe auf „Weiter scannen“, um zu beginnen.
-            </Text>
-          </AppCard>
-        ) : (
-          <View style={styles.pageGrid}>
-            {pages.map((page) => (
-              <IconButtonPage
-                key={page.id}
-                imageUri={page.imageUri}
-                index={page.pageIndex}
-                onPress={() => router.push(`/reader/${book.id}?page=${page.pageIndex}`)}
-              />
-            ))}
-          </View>
-        )}
+        <PageManager
+          pages={pages}
+          onOpenPage={(pageIndex) =>
+            router.push(`/reader/${book.id}?page=${pageIndex}`)
+          }
+          onReordered={async (orderedIds) => {
+            await pageRepository.reorderPages(book.id, orderedIds);
+            await reload();
+          }}
+        />
       </ScrollView>
 
       <View
@@ -241,39 +226,6 @@ function Divider() {
   const theme = useTheme();
   return (
     <View style={[styles.divider, { backgroundColor: theme.colors.separator }]} />
-  );
-}
-
-function IconButtonPage({
-  imageUri,
-  index,
-  onPress,
-}: {
-  imageUri: string;
-  index: number;
-  onPress: () => void;
-}) {
-  const theme = useTheme();
-  return (
-    <View style={styles.pageCell}>
-      <View
-        style={[
-          styles.pageThumb,
-          { borderRadius: theme.radius.md, ...theme.shadows.sm },
-        ]}
-      >
-        <Image source={{ uri: imageUri }} style={styles.pageImage} />
-      </View>
-      <Text
-        variant="caption"
-        color="textTertiary"
-        center
-        onPress={onPress}
-        style={styles.pageNumber}
-      >
-        Seite {index + 1}
-      </Text>
-    </View>
   );
 }
 
@@ -329,18 +281,6 @@ const styles = StyleSheet.create({
   actions: { marginTop: 20, gap: 12 },
   secondaryRow: { flexDirection: 'row', gap: 12 },
   secondaryButton: { flex: 1 },
-  pagesHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 32,
-    marginBottom: 12,
-  },
-  pageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  pageCell: { width: '30%', flexGrow: 1, maxWidth: '31%' },
-  pageThumb: { aspectRatio: 3 / 4, overflow: 'hidden' },
-  pageImage: { width: '100%', height: '100%' },
-  pageNumber: { marginTop: 6 },
   floatingClose: { position: 'absolute', left: 12 },
   skeletonLine: { marginTop: 16 },
 });

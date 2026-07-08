@@ -1,4 +1,4 @@
-import { Book, LibrarySort } from '@/types/models';
+import { Book } from '@/types/models';
 import { createId } from '@/utils/ids';
 
 import { getDatabase } from './db';
@@ -15,18 +15,15 @@ export interface UpdateBookInput {
   coverImageUri?: string | null;
 }
 
-const ORDER_BY: Record<LibrarySort, string> = {
-  recentlyOpened: 'lastOpenedAt DESC, updatedAt DESC',
-  recentlyAdded: 'createdAt DESC',
-  title: 'title COLLATE NOCASE ASC',
-};
-
 export const bookRepository = {
-  async list(sort: LibrarySort = 'recentlyAdded'): Promise<Book[]> {
+  /**
+   * Loads all books in a stable base order (newest first). Presentation
+   * ordering is applied client-side via `sortBooks`, which supports far more
+   * orderings (progress, page count, …) than SQL collation alone.
+   */
+  async list(): Promise<Book[]> {
     const db = await getDatabase();
-    return db.getAllAsync<Book>(
-      `SELECT * FROM books ORDER BY ${ORDER_BY[sort]};`,
-    );
+    return db.getAllAsync<Book>('SELECT * FROM books ORDER BY createdAt DESC;');
   },
 
   async getById(id: string): Promise<Book | null> {
