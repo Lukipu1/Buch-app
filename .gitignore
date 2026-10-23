@@ -34,3 +34,7 @@ yarn-error.*
 # Editor
 .idea/
 .vscode/
+
+# Generated native projects (Expo prebuild / CNG)
+/ios
+/android

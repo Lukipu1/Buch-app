@@ -16,7 +16,11 @@ Eine hochwertige, lokal-first Mobile-App zum **Einscannen, Organisieren und Lese
 | State | **Zustand** | Leichtgewichtig, minimaler Boilerplate, gut testbar. |
 | Persistenz | **expo-sqlite** (async API) | Relationale Daten (Bücher ↔ Seiten), Suche über OCR-Text, Migrationen. |
 | Bilder | **expo-file-system** | Scans werden stabil im App-Dokumentenverzeichnis abgelegt. |
-| Kamera | **expo-camera** | Scan-Aufnahme. |
+| Scanner (iOS) | **Apple VisionKit** (eigenes Expo-Modul `modules/buch-scanner`) | Apples Dokumentenscanner: Kantenerkennung, Entzerrung, automatischer Zuschnitt, Mehrseiten-Aufnahme. |
+| OCR (iOS) | **Apple Vision** (`VNRecognizeTextRequest`) | Präzise Texterkennung komplett auf dem Gerät. |
+| Kamera (Fallback) | **expo-camera** | Aufnahme auf Android / in Expo Go. |
+| Bildbearbeitung | **expo-image-manipulator** | Drehen, Teilen (Fallback ohne natives Modul). |
+| Display | **expo-keep-awake** | Bildschirm bleibt beim Lesen an. |
 | Import | **expo-image-picker** | Seiten aus der Galerie importieren. |
 | Haptik | **expo-haptics** | Dezentes taktiles Feedback. |
 
@@ -30,18 +34,28 @@ Kein globaler UI-Kit-Ballast: Alle Komponenten sind selbst gebaut und an ein zen
 # 1. Abhängigkeiten installieren
 npm install
 
-# 2. Dev-Server starten
+# 2a. iOS Development Build (empfohlen – nötig für Apple-Scanner + Apple-OCR)
+npm run ios                 # = expo run:ios (lokal, Xcode erforderlich)
+#    oder in der Cloud:
+npx eas build --profile development --platform ios
+
+# 2b. Schnellstart ohne native Module (Expo Go / Android)
 npm run start
-#   → i (iOS-Simulator)  |  a (Android)  |  Expo Go via QR-Code
 
 # Qualitätschecks
 npm run typecheck   # tsc --noEmit
 npm run lint        # eslint
 ```
 
-> **Kamera & Haptik** funktionieren nur auf echten Geräten / Simulatoren, nicht im Web-Target. Der Rest der App (Bibliothek, Reader, Suche, Settings) läuft überall.
+> **Wichtig:** Der Apple-Dokumentenscanner und die Apple-Texterkennung sind ein
+> eigenes natives Modul (`modules/buch-scanner`, Swift). Es läuft nur in einem
+> **Development- oder Production-Build** (`expo run:ios` / EAS), **nicht in Expo Go**.
+> Ohne das Modul fällt die App automatisch auf die Kamera-Aufnahme (expo-camera),
+> mittiges Teilen von Doppelseiten und – im Entwicklungsmodus – Mock-OCR zurück.
+> Die nativen Projektordner (`ios/`, `android/`) werden per Prebuild erzeugt und
+> sind nicht eingecheckt.
 
-Im Entwicklungsmodus (`__DEV__`) werden beim ersten Start automatisch **Mock-Bücher** angelegt, damit alle Screens sofort mit Inhalt gefüllt sind (siehe `src/utils/mockData.ts`).
+Im Entwicklungsmodus (`__DEV__`) werden beim ersten Start automatisch **Beispielbücher** angelegt (gemeinfreie Texte, u. a. Kafkas „Die Verwandlung“), damit alle Screens – inklusive Textmodus und Suche – sofort Inhalt haben (siehe `src/utils/mockData.ts`).
 
 ---
 
@@ -74,13 +88,17 @@ src/
     search/
     settings/
   services/
-    database/              # SQLite: schema.ts, repository.ts (+ Entity-Repos), db.ts
-    ocr/                   # OCRProvider.ts, MockOCRProvider.ts, Registry
+    database/              # SQLite: schema.ts, repository.ts (+ Entity-Repos inkl. Lesezeichen), db.ts
+    ocr/                   # OCRProvider.ts, VisionOCRProvider.ts, Mock/No-Provider, textAssembly.ts
+    scanner/               # nativeScanner.ts (Bridge), imageProcessing.ts (Scan-Pipeline + Fallbacks)
     storage/               # storageService.ts (Bild-Persistenz + App-Metadaten)
-  store/                   # Zustand-Stores (useAppStore, settings, library, scanner)
+  store/                   # Zustand-Stores (app, settings, library, scanner, ocr-Queue)
   theme/                   # colors · spacing · typography · radius · shadows · theme
   types/                   # book.ts · page.ts · settings.ts (+ models.ts Barrel)
   utils/                   # date.ts · ids.ts · format · bytes · haptics · mockData
+
+modules/
+  buch-scanner/            # Lokales Expo-Modul (Swift): VisionKit-Scanner, Seitentrennung, Vision-OCR
 ```
 
 > Hinweis zur Navigation: Die App nutzt bewusst eine flache Stack-Struktur.
@@ -102,42 +120,59 @@ Zentrale Tokens: `colors` (Light + Dark), `typography` (iOS-Textstile), `spacing
 
 ### Datenmodell
 
-`Book` (id, title, author, coverImageUri, createdAt, updatedAt, lastOpenedAt, currentPageIndex, totalPages) · `Page` (id, bookId, pageIndex, imageUri, ocrText, createdAt) · `Settings` (theme, readerFontSize, ocrLanguage). Seiten hängen per `ON DELETE CASCADE` am Buch. Schema-Migrationen laufen versioniert über `PRAGMA user_version` (`services/database/schema.ts`).
+`Book` (id, title, author, coverImageUri, createdAt, updatedAt, lastOpenedAt, currentPageIndex, readingOffset, readingTimeMs, totalPages) · `Page` (id, bookId, pageIndex, imageUri, ocrText – `NULL` = noch nicht erkannt, createdAt) · `Bookmark` (id, bookId, pageId, textOffset, snippet, createdAt) · `Settings` (App-Theme, Reader-Schrift/-Größe/-Abstand/-Ränder/-Blocksatz/-Hintergrund/-Modus, Display aktiv, Doppelseiten-Modus, Auto-Zuschnitt, OCR-Sprache). Seiten und Lesezeichen hängen per `ON DELETE CASCADE` am Buch; beim Löschen werden auch die Bilddateien entfernt. Schema-Migrationen laufen versioniert über `PRAGMA user_version` (`services/database/schema.ts`).
 
 ---
 
 ## Was bereits funktioniert
 
-- ✅ **Onboarding** (3 Screens, Paging, Skip, persistierter Abschluss-Flag)
-- ✅ **Bibliothek**: Rasteransicht mit Buchkarten, Live-Suche, Sortierung (zuletzt hinzugefügt / zuletzt gelesen / Titel), Empty- & No-Result-States, Skeletons, Pull-to-Refresh
-- ✅ **Buch-Detailseite**: Cover, Metadaten, Fortschritt, Seiten-Grid, Aktionen (Lesen / Weiter scannen / Bearbeiten / Löschen mit Bestätigung)
-- ✅ **Scanner**: Kamera-Aufnahme, Galerie-Import (mehrfach), Draft-Vorschau-Leiste, Seiten entfernen, Reihenfolge im Store änderbar, Speichern als neues Buch oder Anhängen an bestehendes
-- ✅ **OCR-Abstraktion**: `OcrProvider`-Interface + Mock-Provider, Ergebnis wird pro Seite gespeichert, Fehlerbehandlung (`OcrError`)
-- ✅ **Reader**: seitenweises Paging, Bild-/Textmodus, Schriftgröße, Lesemodi (Hell/Sepia/Dunkel), Seitenübersicht (TOC), Fortschritt wird gemerkt und gespeichert
-- ✅ **Suche**: global über Titel, Autor und OCR-Text; Ergebnisse nach Buch gruppiert mit Seiten-Snippets
-- ✅ **Einstellungen**: Theme, Standard-Schriftgröße, Speicherübersicht, OCR-Sprache, rechtlicher Hinweis
-- ✅ **Lokale Speicherung**: SQLite + persistente Bildablage; keinerlei Cloud/Upload
-- ✅ **UX-Fundament**: Loading-/Empty-/Error-States, Bestätigungsdialoge, dezente Haptik, flüssige Übergänge
+### Scannen
+- ✅ **Apple-Dokumentenscanner (VisionKit)** öffnet sich sofort beim Scannen: Seitenränder werden erkannt, entzerrt und automatisch zugeschnitten; beliebig viele Seiten am Stück.
+- ✅ **Jede Seite einzeln:** Doppelseiten (Querformat) werden automatisch an der **Buchmitte (Falz)** getrennt. Der Falz wird per Helligkeits-/Kontrastanalyse gefunden, der Schatten wird weggeschnitten. Einstellbar: Automatisch / Immer / Nie.
+- ✅ **Foto-Import** aus der Mediathek mit automatischem Zuschneiden (Vision Document Segmentation + Perspektivkorrektur) und Seitentrennung.
+- ✅ **Seiten prüfen vor dem Speichern:** Raster aller Seiten, Großansicht mit **Teilen**, **Drehen**, **Verschieben** und **Löschen**.
+- ✅ Speichern als neues Buch (Titel + Autor) oder Anhängen an ein bestehendes – **sofort**, ohne Wartezeit.
 
-Verifiziert: `npm run typecheck` und `npm run lint` laufen sauber; ein vollständiger Metro-Bundle-Export (`expo export`) baut ohne Fehler.
+### Texterkennung
+- ✅ **Apple Vision OCR** (genau, offline, auf dem Gerät), Sprache wählbar.
+- ✅ **Hintergrund-Queue:** Text wird nach dem Speichern Seite für Seite erkannt, Fortschritt sichtbar in Buch-Detail und Reader, wird nach App-Neustart fortgesetzt.
+- ✅ **Absatz-Rekonstruktion:** Zeilen werden zu Absätzen zusammengesetzt, Silbentrennungen aufgelöst, Seitenzahlen und Kolumnentitel entfernt.
+
+### Reader (Kindle-Prinzip)
+- ✅ **Textmodus mit echtem Seitenumbruch:** Der Text aller Seiten fließt als ein durchgehendes Buch (Sätze und Wörter über Seitengrenzen werden verbunden) und wird exakt auf den Bildschirm umbrochen – gemessen mit der echten Text-Engine des Geräts.
+- ✅ **Originalmodus:** die Scans, mit Pinch-to-Zoom (iOS).
+- ✅ **Blättern** per Wischen oder Tippen auf den linken/rechten Rand, Mitte öffnet das Menü; Statusleiste wird beim Lesen ausgeblendet.
+- ✅ **„Aa“-Darstellung:** Schriftgröße, 4 Schriftarten (Georgia, Palatino, Iowan, Modern), Zeilenabstand, Seitenränder, Blocksatz/Linksbündig, 5 Hintergründe (Weiß, Sepia, Grün, Dunkel, Schwarz). Wird global gespeichert.
+- ✅ **Fortschritt** wie beim Kindle: „Seite x von y“, Prozent, **verbleibende Lesezeit**, Fortschrittsregler zum Springen.
+- ✅ **Lesezeichen** (Lesezeichen-Band auf der Seite), Inhaltsübersicht mit Seiten-Raster und Lesezeichenliste.
+- ✅ **Suche im Buch** mit hervorgehobenen Treffern und Sprung an die Stelle.
+- ✅ Position wird zeichengenau gemerkt, **Lesezeit** wird erfasst, Display bleibt optional aktiv.
+
+### Bibliothek & Verwaltung
+- ✅ **Weiterlesen-Karte** für das zuletzt gelesene Buch, Raster aller Bücher, Live-Filter, Sortierung, Aktualisierung bei Rückkehr.
+- ✅ **Buch-Detail:** Cover, Fortschritt, Lesezeit, Status der Texterkennung, Seiten-Raster. Lange drücken auf eine Seite: ab hier lesen, als Cover verwenden, Text neu erkennen, verschieben, löschen.
+- ✅ **Globale Suche** über Titel, Autor und erkannten Text.
+- ✅ **Einstellungen:** Hell/Dunkel/System (Standard: **Hell**), Reader-Standard, Display aktiv, Scanner-Optionen, OCR-Engine und -Sprache, Speicherübersicht.
+- ✅ **Lokal-first:** SQLite + Bildablage im App-Verzeichnis, keinerlei Upload.
+
+Verifiziert: `npm run typecheck` und `npm run lint` laufen sauber; `expo export` (iOS + Android) baut; Autolinking erkennt das native Modul `BuchScanner`. Text-Rekonstruktion, Buch-Textfluss und Seitenumbruch-Logik wurden mit Tests gegen Beispieldaten geprüft. Der Swift-Code konnte in dieser Umgebung (Linux) nicht kompiliert werden – beim ersten `expo run:ios` bitte kurz prüfen.
 
 ---
 
-## Was als Nächstes implementiert werden sollte
+## Was als Nächstes sinnvoll ist
 
-1. **Echte OCR** anbinden (siehe unten) und OCR bei Bedarf nachträglich pro Seite auslösen (Speicherlogik pro Seite vorhanden).
-2. **Drag-&-Drop-Sortierung** der Seiten im Scanner/Detail (Logik `moveDraft` / `reorderPages` ist bereits da) — z. B. mit `react-native-reanimated` + Gesture Handler.
-3. **Bildoptimierung**: automatische Kantenerkennung/Perspektivkorrektur und Kompression beim Scan.
-4. **PDF-Export** eines Buchs.
-5. **Reader-Feinschliff**: Pinch-to-Zoom im Bildmodus, Lesezeichen, Textsuche innerhalb eines Buchs.
-6. **Tests**: Repositories und Utils sind bewusst rein/testbar gehalten (`_resetDatabaseForTests` vorhanden).
-7. **Optionale Cloud-Sync** — strikt opt-in, unter Beibehaltung des Local-First-Prinzips.
+1. **Android-Scanner:** Google ML Kit Document Scanner als Android-Gegenstück im selben Modul.
+2. **Markierungen & Notizen** im Textmodus (Textauswahl).
+3. **Kapitel** automatisch aus Überschriften erkennen (Inhaltsverzeichnis).
+4. **PDF/EPUB-Export** eines Buchs.
+5. **Tests** als feste Suite (Jest) für `textAssembly`, `bookText` und die Repositories.
+6. **Optionale Cloud-Sync** — strikt opt-in.
 
 ---
 
 ## Hinweise zur OCR-Erweiterung
 
-Die OCR ist vollständig hinter einem Interface abstrahiert (`src/services/ocr`):
+Die OCR ist hinter einem Interface abstrahiert (`src/services/ocr`):
 
 ```ts
 interface OcrProvider {
@@ -148,28 +183,16 @@ interface OcrProvider {
 }
 ```
 
-Einen echten Provider anbinden:
-
-1. Neue Klasse anlegen, die `OcrProvider` implementiert (Vorlage: `MockOcrProvider.ts`).
-   - **Apple Vision** → kleines Native-/Expo-Modul, das `VNRecognizeTextRequest` bridgt (nur iOS, offline, sehr gut für Deutsch/Englisch).
-   - **Google ML Kit** → via Config-Plugin + nativer Text-Recognizer (iOS + Android, offline).
-   - **Tesseract** → WASM- oder Native-Binding (plattformübergreifend, größer).
-   - **Cloud-API** → `fetch()` an den eigenen Endpunkt. ⚠️ Nur mit ausdrücklicher Nutzerzustimmung hochladen — das Local-First-Versprechen der App gilt.
-2. Provider in `src/services/ocr/index.ts` registrieren und `activeProviderId` setzen.
-3. Rest der App bleibt unverändert — `useScannerStore.commit()` ruft nur `getOcrProvider().recognize(...)` auf und speichert das Ergebnis pro Seite.
-
-Die gewählte OCR-Sprache liegt in den Settings (`ocrLanguage`) und wird an `recognize()` durchgereicht.
+Die Registry (`src/services/ocr/index.ts`) wählt automatisch: **Apple Vision** (wenn das native Modul vorhanden ist) → **Mock** (nur `__DEV__`) → **keine OCR**. Ein weiterer Provider (z. B. ML Kit für Android) implementiert `OcrProvider`, liefert idealerweise positionierte Zeilen an `assembleText()` und wird in der Registry eingetragen. Die Hintergrund-Queue (`src/store/useOcrStore.ts`) bleibt unverändert.
 
 ---
 
-## Hinweise zur Kamera-Integration
+## Hinweise zum Scanner
 
-Die Scan-Ansicht (`src/features/scanner`) nutzt bereits `expo-camera` (`CameraView`) mit Permission-Gate, Auslöser, Galerie-Import und Draft-Verwaltung. Für den Produktionsausbau:
-
-- **Berechtigungen**: Texte sind in `app.json` (`NSCameraUsageDescription`, `NSPhotoLibraryUsageDescription`, Android-Permissions) hinterlegt.
-- **Bildqualität**: aktuell `quality: 0.8`. Für Dokumentenscans empfiehlt sich zusätzlich Kantenerkennung + Perspektivkorrektur (z. B. ein Dokumentenscanner-Native-Modul) und anschließende Kompression.
-- **Speicherung**: Kamera-/Galerie-URIs sind temporär. `imageStorage.persist()` kopiert sie ins Dokumentenverzeichnis — nur dieser stabile URI landet in der DB.
-- **Reihenfolge**: `useScannerStore.moveDraft()` (vor dem Speichern) und `pageRepository.reorderPages()` (persistiert) sind vorhanden; es fehlt nur die Drag-&-Drop-UI.
+- **Natives Modul** `modules/buch-scanner/ios`: `scanDocument` (VisionKit), `processImage` (Zuschnitt + Teilen für Fotos), `recognizeText` (Vision). JS-Zugriff über `src/services/scanner/nativeScanner.ts`; in Expo Go ist es `null`.
+- **Seitentrennung** (`PageProcessor.swift` / `GutterDetector`): Bilder mit Seitenverhältnis > 1,12 gelten als Doppelseite. Im mittleren Bildbereich wird pro Spalte `Helligkeit + Standardabweichung` bewertet; der Falz (dunkler, gleichmäßiger Schatten) hat den kleinsten Wert. Ohne klares Ergebnis wird mittig geteilt.
+- **Berechtigungen**: Texte sind in `app.json` hinterlegt (`NSCameraUsageDescription`, `NSPhotoLibraryUsageDescription`).
+- **Speicherung**: Temporäre Scans werden von `imageStorage.persist()` ins Dokumentenverzeichnis verschoben – nur dieser stabile URI landet in der DB.
 
 ---
 

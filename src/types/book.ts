@@ -11,6 +11,21 @@ export interface Book {
   lastOpenedAt: number | null;
   currentPageIndex: number;
   totalPages: number;
+  /** Character offset inside the current page's text (text reading mode). */
+  readingOffset: number;
+  /** Accumulated active reading time. */
+  readingTimeMs: number;
+}
+
+/** A saved reading position. Anchored to a page so reordering keeps it valid. */
+export interface Bookmark {
+  id: string;
+  bookId: string;
+  pageId: string;
+  /** Character offset inside that page's reading text. */
+  textOffset: number;
+  snippet: string | null;
+  createdAt: number;
 }
 
 /** Options for how the library is ordered. */

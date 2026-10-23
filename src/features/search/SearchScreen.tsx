@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { EmptyState, AppHeader, SearchInput, Text } from '@/components';
+import { EmptyState, AppHeader, IconButton, SearchInput, Text } from '@/components';
 import { useTheme } from '@/theme';
 
 import { SearchResultCard } from './SearchResultCard';
@@ -33,7 +33,17 @@ export function SearchScreen() {
   return (
     <View style={[styles.flex, { backgroundColor: theme.colors.background }]}>
       <View style={{ paddingTop: insets.top }}>
-        <AppHeader title="Suche" />
+        <AppHeader
+          title="Suche"
+          left={
+            <IconButton
+              icon="chevron-back"
+              accessibilityLabel="Zurück"
+              onPress={() => router.back()}
+              style={styles.back}
+            />
+          }
+        />
         <View style={styles.searchField}>
           <SearchInput
             placeholder="Titel, Autor oder Inhalt"
@@ -93,6 +103,7 @@ export function SearchScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  back: { marginLeft: -10, marginRight: 4 },
   searchField: { paddingHorizontal: 16, paddingBottom: 8 },
   loading: { paddingTop: 60, alignItems: 'center' },
   results: { padding: 16, gap: 12 },

@@ -1,5 +1,5 @@
-import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -9,10 +9,12 @@ import {
   AppHeader,
   IconButton,
   SearchInput,
+  Text,
 } from '@/components';
 import { useLibraryStore, selectVisibleBooks } from '@/store/useLibraryStore';
 import { useTheme } from '@/theme';
 
+import { ContinueReadingCard } from './ContinueReadingCard';
 import { LibrarySkeleton } from './LibrarySkeleton';
 import { SortControl } from './SortControl';
 
@@ -27,11 +29,29 @@ export function LibraryScreen() {
   const load = useLibraryStore((s) => s.load);
   const refresh = useLibraryStore((s) => s.refresh);
   const books = useLibraryStore(selectVisibleBooks);
-  const totalBooks = useLibraryStore((s) => s.books.length);
+  const allBooks = useLibraryStore((s) => s.books);
+  const totalBooks = allBooks.length;
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Progress and "last read" change while reading — refresh on return.
+  useFocusEffect(
+    useCallback(() => {
+      void refresh();
+    }, [refresh]),
+  );
+
+  const continueBook = useMemo(() => {
+    let latest: (typeof allBooks)[number] | null = null;
+    for (const book of allBooks) {
+      if (!book.lastOpenedAt || book.totalPages === 0) continue;
+      if (!latest || book.lastOpenedAt > (latest.lastOpenedAt ?? 0)) latest = book;
+    }
+    return latest;
+  }, [allBooks]);
+  const showContinue = continueBook !== null && query.trim().length === 0;
 
   const openBook = useCallback(
     (id: string) => router.push(`/book/${id}`),
@@ -112,11 +132,24 @@ export function LibraryScreen() {
             <RefreshControl refreshing={false} onRefresh={() => void refresh()} />
           }
         >
+          {showContinue && continueBook && (
+            <View style={styles.fullRow}>
+              <ContinueReadingCard
+                book={continueBook}
+                onRead={() => router.push(`/reader/${continueBook.id}`)}
+                onOpenDetails={() => openBook(continueBook.id)}
+              />
+              <Text variant="title3" style={styles.sectionTitle}>
+                Alle Bücher
+              </Text>
+            </View>
+          )}
           {books.map((book) => (
             <View key={book.id} style={styles.cell}>
               <BookCard book={book} onPress={() => openBook(book.id)} />
             </View>
           ))}
+          {books.length % 2 === 1 && <View style={styles.cell} />}
         </ScrollView>
       )}
     </View>
@@ -133,4 +166,6 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   cell: { width: '47%', flexGrow: 1 },
+  fullRow: { width: '100%' },
+  sectionTitle: { marginTop: 24 },
 });

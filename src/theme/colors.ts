@@ -51,30 +51,30 @@ export interface ColorPalette {
 }
 
 const light: ColorPalette = {
-  background: '#F2F2F7',
+  background: '#F6F6F4',
   backgroundElevated: '#FFFFFF',
   surface: '#FFFFFF',
-  surfacePressed: '#EBEBF0',
+  surfacePressed: '#EFEFEC',
 
-  text: '#1C1C1E',
+  text: '#1D1D1F',
   textSecondary: '#6E6E73',
   textTertiary: '#A1A1A6',
 
-  accent: '#007AFF',
+  accent: '#0A6CFF',
   onAccent: '#FFFFFF',
-  accentMuted: 'rgba(0, 122, 255, 0.12)',
+  accentMuted: 'rgba(10, 108, 255, 0.10)',
 
-  danger: '#FF3B30',
-  success: '#34C759',
+  danger: '#E5372C',
+  success: '#2DB55D',
 
-  separator: '#E5E5EA',
-  border: '#D1D1D6',
+  separator: '#E6E6E3',
+  border: '#D9D9D5',
 
-  skeleton: '#E9E9EE',
+  skeleton: '#ECECE9',
 
   readerLight: '#FFFFFF',
   readerDark: '#1C1C1E',
-  readerSepia: '#FBF0D9',
+  readerSepia: '#F8F1E3',
 };
 
 const dark: ColorPalette = {

@@ -37,3 +37,13 @@ export function formatRelativeTime(timestamp: number | null): string {
     year: 'numeric',
   });
 }
+
+/** Duration in minutes as a compact label, e.g. "1 Std. 5 Min.". */
+export function formatDuration(minutes: number): string {
+  if (minutes < 1) return 'weniger als 1 Min.';
+  const total = Math.round(minutes);
+  if (total < 60) return `${total} Min.`;
+  const hours = Math.floor(total / 60);
+  const rest = total % 60;
+  return rest === 0 ? `${hours} Std.` : `${hours} Std. ${rest} Min.`;
+}

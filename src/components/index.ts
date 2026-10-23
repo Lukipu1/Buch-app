@@ -12,3 +12,6 @@ export { BookCard } from './BookCard';
 export { PagePreview } from './PagePreview';
 export { SegmentedControl } from './SegmentedControl';
 export { confirm } from './confirm';
+export { BottomSheet } from './BottomSheet';
+export { ActionSheet } from './ActionSheet';
+export type { ActionSheetItem } from './ActionSheet';

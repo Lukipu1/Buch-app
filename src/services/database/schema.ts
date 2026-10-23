@@ -45,6 +45,37 @@ export const MIGRATIONS: Migration[] = [
       `INSERT OR IGNORE INTO settings (id) VALUES (1);`,
     ],
   },
+  {
+    version: 2,
+    statements: [
+      // Reading position inside a page + reading statistics.
+      `ALTER TABLE books ADD COLUMN readingOffset INTEGER NOT NULL DEFAULT 0;`,
+      `ALTER TABLE books ADD COLUMN readingTimeMs INTEGER NOT NULL DEFAULT 0;`,
+      // Reader & scanner preferences.
+      `ALTER TABLE settings ADD COLUMN readerFont TEXT NOT NULL DEFAULT 'georgia';`,
+      `ALTER TABLE settings ADD COLUMN readerSpacing TEXT NOT NULL DEFAULT 'normal';`,
+      `ALTER TABLE settings ADD COLUMN readerMargin TEXT NOT NULL DEFAULT 'normal';`,
+      `ALTER TABLE settings ADD COLUMN readerJustify INTEGER NOT NULL DEFAULT 1;`,
+      `ALTER TABLE settings ADD COLUMN readerTheme TEXT NOT NULL DEFAULT 'light';`,
+      `ALTER TABLE settings ADD COLUMN readerMode TEXT NOT NULL DEFAULT 'text';`,
+      `ALTER TABLE settings ADD COLUMN keepScreenAwake INTEGER NOT NULL DEFAULT 1;`,
+      `ALTER TABLE settings ADD COLUMN scanSplitMode TEXT NOT NULL DEFAULT 'auto';`,
+      `ALTER TABLE settings ADD COLUMN scanAutoCrop INTEGER NOT NULL DEFAULT 1;`,
+      // The app is designed light-first.
+      `UPDATE settings SET theme = 'light' WHERE theme = 'system';`,
+      `CREATE TABLE IF NOT EXISTS bookmarks (
+        id TEXT PRIMARY KEY NOT NULL,
+        bookId TEXT NOT NULL,
+        pageId TEXT NOT NULL,
+        textOffset INTEGER NOT NULL DEFAULT 0,
+        snippet TEXT,
+        createdAt INTEGER NOT NULL,
+        FOREIGN KEY (bookId) REFERENCES books (id) ON DELETE CASCADE,
+        FOREIGN KEY (pageId) REFERENCES pages (id) ON DELETE CASCADE
+      );`,
+      `CREATE INDEX IF NOT EXISTS idx_bookmarks_book ON bookmarks (bookId);`,
+    ],
+  },
 ];
 
 export const LATEST_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

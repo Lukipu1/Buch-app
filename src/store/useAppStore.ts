@@ -4,6 +4,7 @@ import { getDatabase } from '@/services/database';
 import { appMeta } from '@/services/storage/appMeta';
 import { seedMockDataIfEmpty } from '@/utils/mockData';
 
+import { useOcrStore } from './useOcrStore';
 import { useSettingsStore } from './useSettingsStore';
 
 interface AppState {
@@ -30,6 +31,8 @@ export const useAppStore = create<AppState>((set) => ({
     }
     const onboardingComplete = await appMeta.isOnboardingComplete();
     set({ ready: true, onboardingComplete });
+    // Continue text recognition that was interrupted by closing the app.
+    void useOcrStore.getState().resumePending().catch(() => {});
   },
 
   async completeOnboarding() {

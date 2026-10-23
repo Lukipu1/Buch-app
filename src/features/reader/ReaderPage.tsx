@@ -1,62 +1,110 @@
-import React from 'react';
-import { Image, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import React, { memo } from 'react';
+import {
+  GestureResponderEvent,
+  Image,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextStyle,
+  View,
+} from 'react-native';
 
-import { Text } from '@/components';
-import { Page } from '@/types/models';
-
-import { ReaderColors } from './readerTheme';
-
-interface ReaderPageProps {
-  page: Page;
-  mode: 'image' | 'text';
-  fontSize: number;
-  colors: ReaderColors;
+interface PageFrame {
+  width: number;
+  height: number;
+  paddingTop: number;
+  paddingBottom: number;
+  paddingHorizontal: number;
 }
 
-/** Renders a single page either as its scanned image or its OCR text. */
-export function ReaderPage({ page, mode, fontSize, colors }: ReaderPageProps) {
-  const { width } = useWindowDimensions();
+interface TextPageViewProps {
+  text: string;
+  textStyle: TextStyle;
+  frame: PageFrame;
+  onTap: (x: number) => void;
+}
 
-  if (mode === 'image') {
-    return (
-      <View style={[styles.imageWrap, { width }]}>
-        <Image
-          source={{ uri: page.imageUri }}
-          style={styles.image}
-          resizeMode="contain"
-        />
+/** One paginated screen of reflowed text. */
+export const TextPageView = memo(function TextPageView({
+  text,
+  textStyle,
+  frame,
+  onTap,
+}: TextPageViewProps) {
+  return (
+    <Pressable
+      onPress={(e: GestureResponderEvent) => onTap(e.nativeEvent.pageX)}
+      style={{ width: frame.width, height: frame.height }}
+      accessible={false}
+    >
+      <View
+        style={[
+          styles.textFrame,
+          {
+            paddingTop: frame.paddingTop,
+            paddingHorizontal: frame.paddingHorizontal,
+            height: frame.height - frame.paddingBottom,
+          },
+        ]}
+      >
+        <Text style={textStyle} allowFontScaling={false} accessibilityRole="text">
+          {text}
+        </Text>
       </View>
-    );
-  }
+    </Pressable>
+  );
+});
+
+interface ImagePageViewProps {
+  imageUri: string;
+  frame: PageFrame;
+  onTap: (x: number) => void;
+}
+
+/** The original scan, pinch-to-zoom on iOS. */
+export const ImagePageView = memo(function ImagePageView({
+  imageUri,
+  frame,
+  onTap,
+}: ImagePageViewProps) {
+  const content = (
+    <Pressable
+      onPress={(e: GestureResponderEvent) => onTap(e.nativeEvent.pageX)}
+      style={{
+        width: frame.width,
+        height: frame.height,
+        paddingTop: frame.paddingTop,
+        paddingBottom: frame.paddingBottom,
+        paddingHorizontal: 10,
+      }}
+      accessible={false}
+    >
+      <Image source={{ uri: imageUri }} style={styles.image} resizeMode="contain" />
+    </Pressable>
+  );
+
+  if (Platform.OS !== 'ios') return content;
 
   return (
     <ScrollView
-      style={{ width }}
-      contentContainerStyle={styles.textContent}
+      style={{ width: frame.width, height: frame.height }}
+      maximumZoomScale={4}
+      minimumZoomScale={1}
+      bouncesZoom
+      centerContent
+      showsHorizontalScrollIndicator={false}
       showsVerticalScrollIndicator={false}
     >
-      {page.ocrText ? (
-        <Text
-          style={[
-            styles.text,
-            { fontSize, lineHeight: fontSize * 1.6, color: colors.text },
-          ]}
-        >
-          {page.ocrText}
-        </Text>
-      ) : (
-        <Text style={[styles.placeholder, { color: colors.muted }]}>
-          Für diese Seite liegt noch kein erkannter Text vor.
-        </Text>
-      )}
+      {content}
     </ScrollView>
   );
-}
+});
+
+export type { PageFrame };
 
 const styles = StyleSheet.create({
-  imageWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  image: { width: '100%', height: '100%' },
-  textContent: { paddingHorizontal: 28, paddingVertical: 40 },
-  text: { fontWeight: '400' },
-  placeholder: { fontSize: 16, textAlign: 'center', marginTop: 40 },
+  textFrame: { overflow: 'hidden' },
+  image: { flex: 1, width: '100%' },
 });

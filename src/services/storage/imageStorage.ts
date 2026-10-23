@@ -19,11 +19,24 @@ async function ensureDir(): Promise<void> {
 }
 
 export const imageStorage = {
-  /** Copies a source image into persistent storage and returns the new URI. */
+  /**
+   * Moves (temporary cache files) or copies a source image into persistent
+   * storage and returns the new URI.
+   */
   async persist(sourceUri: string): Promise<string> {
     await ensureDir();
     const extension = guessExtension(sourceUri);
     const target = `${PAGES_DIR}${createId()}.${extension}`;
+    const isTemporary =
+      !!FileSystem.cacheDirectory && sourceUri.startsWith(FileSystem.cacheDirectory);
+    if (isTemporary) {
+      try {
+        await FileSystem.moveAsync({ from: sourceUri, to: target });
+        return target;
+      } catch {
+        // Fall through to copying (e.g. file still in use).
+      }
+    }
     await FileSystem.copyAsync({ from: sourceUri, to: target });
     return target;
   },

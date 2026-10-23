@@ -1,3 +1,4 @@
+import { imageStorage } from '@/services/storage/imageStorage';
 import { Book, LibrarySort } from '@/types/models';
 import { createId } from '@/utils/ids';
 
@@ -16,7 +17,7 @@ export interface UpdateBookInput {
 }
 
 const ORDER_BY: Record<LibrarySort, string> = {
-  recentlyOpened: 'lastOpenedAt DESC, updatedAt DESC',
+  recentlyOpened: 'lastOpenedAt IS NULL, lastOpenedAt DESC, updatedAt DESC',
   recentlyAdded: 'createdAt DESC',
   title: 'title COLLATE NOCASE ASC',
 };
@@ -51,6 +52,8 @@ export const bookRepository = {
       lastOpenedAt: null,
       currentPageIndex: 0,
       totalPages: 0,
+      readingOffset: 0,
+      readingTimeMs: 0,
     };
     await db.runAsync(
       `INSERT INTO books
@@ -103,16 +106,49 @@ export const bookRepository = {
 
   async delete(id: string): Promise<void> {
     const db = await getDatabase();
-    // Pages are removed automatically via ON DELETE CASCADE.
+    const images = await db.getAllAsync<{ imageUri: string }>(
+      'SELECT imageUri FROM pages WHERE bookId = ?;',
+      [id],
+    );
+    // Pages and bookmarks are removed automatically via ON DELETE CASCADE.
     await db.runAsync('DELETE FROM books WHERE id = ?;', [id]);
+    await Promise.all(
+      images.map((row) => imageStorage.remove(row.imageUri).catch(() => {})),
+    );
   },
 
-  /** Persists reading progress and stamps the book as recently opened. */
-  async saveProgress(id: string, currentPageIndex: number): Promise<void> {
+  /** The most recently opened book that still has pages, for "Weiterlesen". */
+  async lastOpened(): Promise<Book | null> {
+    const db = await getDatabase();
+    const book = await db.getFirstAsync<Book>(
+      'SELECT * FROM books WHERE lastOpenedAt IS NOT NULL AND totalPages > 0 ORDER BY lastOpenedAt DESC LIMIT 1;',
+    );
+    return book ?? null;
+  },
+
+  /**
+   * Persists reading progress and stamps the book as recently opened.
+   * `readingOffset` is the character offset inside the current page's text.
+   */
+  async saveProgress(
+    id: string,
+    currentPageIndex: number,
+    readingOffset = 0,
+  ): Promise<void> {
+    const db = await getDatabase();
+    const now = Date.now();
+    await db.runAsync(
+      'UPDATE books SET currentPageIndex = ?, readingOffset = ?, lastOpenedAt = ?, updatedAt = ? WHERE id = ?;',
+      [currentPageIndex, Math.max(0, Math.round(readingOffset)), now, now, id],
+    );
+  },
+
+  async addReadingTime(id: string, ms: number): Promise<void> {
+    if (ms <= 0) return;
     const db = await getDatabase();
     await db.runAsync(
-      'UPDATE books SET currentPageIndex = ?, lastOpenedAt = ?, updatedAt = ? WHERE id = ?;',
-      [currentPageIndex, Date.now(), Date.now(), id],
+      'UPDATE books SET readingTimeMs = readingTimeMs + ? WHERE id = ?;',
+      [Math.round(ms), id],
     );
   },
 

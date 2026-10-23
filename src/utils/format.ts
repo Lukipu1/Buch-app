@@ -1,7 +1,7 @@
 /** Small, dependency-free formatting helpers used across screens. */
 
 // Re-exported so callers can pull date + value formatting from one module.
-export { formatRelativeTime, formatDate } from './date';
+export { formatRelativeTime, formatDate, formatDuration } from './date';
 
 /** Formats a page count as a localized German label. */
 export function formatPageCount(count: number): string {

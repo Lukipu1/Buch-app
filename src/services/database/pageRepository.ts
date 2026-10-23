@@ -1,3 +1,4 @@
+import { imageStorage } from '@/services/storage/imageStorage';
 import { Page } from '@/types/models';
 import { createId } from '@/utils/ids';
 
@@ -63,7 +64,7 @@ export const pageRepository = {
     await bookRepository.syncPageCount(bookId);
   },
 
-  async updateOcrText(pageId: string, ocrText: string): Promise<void> {
+  async updateOcrText(pageId: string, ocrText: string | null): Promise<void> {
     const db = await getDatabase();
     await db.runAsync('UPDATE pages SET ocrText = ? WHERE id = ?;', [
       ocrText,
@@ -71,12 +72,50 @@ export const pageRepository = {
     ]);
   },
 
+  /** Pages whose text has not been recognised yet. */
+  async listPendingOcr(bookId: string): Promise<Page[]> {
+    const db = await getDatabase();
+    return db.getAllAsync<Page>(
+      'SELECT * FROM pages WHERE bookId = ? AND ocrText IS NULL ORDER BY pageIndex ASC;',
+      [bookId],
+    );
+  },
+
+  /** Ids of books that still contain pages waiting for text recognition. */
+  async booksWithPendingOcr(): Promise<string[]> {
+    const db = await getDatabase();
+    const rows = await db.getAllAsync<{ bookId: string }>(
+      'SELECT DISTINCT bookId FROM pages WHERE ocrText IS NULL;',
+    );
+    return rows.map((r) => r.bookId);
+  },
+
+  /** Marks every page of a book for a fresh text recognition run. */
+  async resetOcr(bookId: string): Promise<void> {
+    const db = await getDatabase();
+    await db.runAsync('UPDATE pages SET ocrText = NULL WHERE bookId = ?;', [
+      bookId,
+    ]);
+  },
+
   /** Deletes a page and re-normalises the remaining page indices to 0..n-1. */
   async deletePage(bookId: string, pageId: string): Promise<void> {
     const db = await getDatabase();
+    const page = await db.getFirstAsync<{ imageUri: string }>(
+      'SELECT imageUri FROM pages WHERE id = ?;',
+      [pageId],
+    );
     await db.runAsync('DELETE FROM pages WHERE id = ?;', [pageId]);
     await reindexPages(db, bookId);
     await bookRepository.syncPageCount(bookId);
+
+    // Keep the cover valid when it pointed at the deleted page.
+    const book = await bookRepository.getById(bookId);
+    if (page && book?.coverImageUri === page.imageUri) {
+      const first = await this.getByIndex(bookId, 0);
+      await bookRepository.update(bookId, { coverImageUri: first?.imageUri ?? null });
+    }
+    if (page) await imageStorage.remove(page.imageUri).catch(() => {});
   },
 
   /**
